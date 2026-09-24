@@ -1,0 +1,88 @@
+import pg from "pg";
+import type { NormalizedPerson } from "./types.js";
+
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+
+/** Finds an existing person by exact first/last name match, or creates one.
+ * This is a simple dedup strategy for the reference connectors — a real
+ * entity-resolution pass (fuzzy match on name+dob+address) belongs here later. */
+async function findOrCreatePerson(client: pg.PoolClient, person: NormalizedPerson): Promise<string> {
+  const existing = await client.query<{ id: string }>(
+    `SELECT id FROM persons WHERE lower(first_name) = lower($1) AND lower(last_name) = lower($2) LIMIT 1`,
+    [person.firstName, person.lastName]
+  );
+  if (existing.rows.length > 0) {
+    return existing.rows[0].id;
+  }
+
+  const inserted = await client.query<{ id: string }>(
+    `INSERT INTO persons (id, first_name, middle_name, last_name, dob_year, created_at, updated_at)
+     VALUES (gen_random_uuid(), $1, $2, $3, $4, now(), now())
+     RETURNING id`,
+    [person.firstName, person.middleName ?? null, person.lastName, person.dobYear ?? null]
+  );
+  return inserted.rows[0].id;
+}
+
+export async function persistNormalizedPerson(person: NormalizedPerson): Promise<string> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const personId = await findOrCreatePerson(client, person);
+
+    for (const address of person.addresses ?? []) {
+      if (!address.line1) continue;
+      await client.query(
+        `INSERT INTO addresses (id, person_id, line1, line2, city, state, zip_code, source)
+         SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7
+         WHERE NOT EXISTS (
+           SELECT 1 FROM addresses WHERE person_id = $1 AND line1 = $2 AND coalesce(zip_code,'') = coalesce($6,'')
+         )`,
+        [personId, address.line1, address.line2 ?? null, address.city ?? null, address.state ?? null, address.zipCode ?? null, person.source]
+      );
+    }
+
+    for (const phone of person.phones ?? []) {
+      await client.query(
+        `INSERT INTO phones (id, person_id, number, phone_type, source)
+         SELECT gen_random_uuid(), $1, $2, $3, $4
+         WHERE NOT EXISTS (SELECT 1 FROM phones WHERE person_id = $1 AND number = $2)`,
+        [personId, phone.number, phone.phoneType ?? null, person.source]
+      );
+    }
+
+    for (const email of person.emails ?? []) {
+      await client.query(
+        `INSERT INTO emails (id, person_id, email, source)
+         SELECT gen_random_uuid(), $1, $2, $3
+         WHERE NOT EXISTS (SELECT 1 FROM emails WHERE person_id = $1 AND email = $2)`,
+        [personId, email.email, person.source]
+      );
+    }
+
+    for (const record of person.records ?? []) {
+      await client.query(
+        `INSERT INTO court_records (id, person_id, case_number, court_name, state, case_type, filing_date, disposition, source_url)
+         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          personId,
+          record.caseNumber ?? null,
+          record.courtName ?? null,
+          record.state ?? null,
+          record.caseType ?? null,
+          record.filingDate ?? null,
+          record.disposition ?? null,
+          record.sourceUrl ?? null,
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+    return personId;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}

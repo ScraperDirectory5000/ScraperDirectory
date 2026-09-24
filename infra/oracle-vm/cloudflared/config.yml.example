@@ -1,0 +1,8 @@
+# Filled in during setup — see infra/oracle-vm/README.md.
+# tunnel: <TUNNEL_UUID>
+# credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
+#
+# ingress:
+#   - hostname: api.yourdomain.com
+#     service: http://api:8000
+#   - service: http_status:404

@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+.next/
+*.log
+.DS_Store
+.vscode/
+opensearch-data/
+postgres-data/
+redis-data/
