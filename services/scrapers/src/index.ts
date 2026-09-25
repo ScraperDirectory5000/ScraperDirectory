@@ -4,12 +4,14 @@ import { Worker } from "bullmq";
 import { connection, scrapeQueue, SCRAPE_QUEUE_NAME, type ScrapeJobData } from "./queue.js";
 import { NpiRegistryConnector } from "./connectors/npiRegistry.js";
 import { SecEdgarConnector } from "./connectors/secEdgar.js";
+import { FecContributionsConnector } from "./connectors/fecContributions.js";
 import { persistNormalizedPerson } from "./db.js";
 import type { Connector } from "./types.js";
 
 const CONNECTORS: Record<string, Connector> = {
   npi_registry: new NpiRegistryConnector(),
   sec_edgar: new SecEdgarConnector(),
+  fec_contributions: new FecContributionsConnector(),
 };
 
 const worker = new Worker<ScrapeJobData>(
@@ -17,27 +19,23 @@ const worker = new Worker<ScrapeJobData>(
   async (job) => {
     const { query, connectors } = job.data;
     const targets = connectors.length > 0 ? connectors : Object.keys(CONNECTORS);
-    let successfulConnectors = 0;
-
-    for (const name of targets) {
+    const outcomes = await Promise.allSettled(targets.map(async (name) => {
       const connector = CONNECTORS[name];
       if (!connector) {
-        console.warn(`Unknown connector "${name}", skipping`);
-        continue;
+        throw new Error(`Unknown connector "${name}"`);
       }
-      try {
-        const results = await connector.search(query);
-        for (const person of results) {
-          await persistNormalizedPerson(person);
-        }
-        successfulConnectors += 1;
-        console.log(`[${name}] persisted ${results.length} record(s) for ${query.firstName} ${query.lastName}`);
-      } catch (error) {
-        console.error(`[${name}] failed:`, error);
+      const results = await connector.search(query);
+      for (const person of results) {
+        await persistNormalizedPerson(person);
       }
-    }
+      console.log(`[${name}] persisted ${results.length} record(s) for ${query.firstName} ${query.lastName}`);
+    }));
 
-    if (successfulConnectors === 0) {
+    outcomes.forEach((outcome, index) => {
+      if (outcome.status === "rejected") console.error(`[${targets[index]}] failed:`, outcome.reason);
+    });
+
+    if (outcomes.every((outcome) => outcome.status === "rejected")) {
       throw new Error("All requested public-record connectors failed");
     }
   },
@@ -88,7 +86,7 @@ const server = createServer(async (request, response) => {
       const jobId = `search-${createHash("sha256").update(key).digest("hex").slice(0, 32)}`;
       await scrapeQueue.add(
         "scrape-person",
-        { query, connectors: ["npi_registry", "sec_edgar"] },
+        { query, connectors: Object.keys(CONNECTORS) },
         { jobId, removeOnComplete: { age: 300 }, removeOnFail: { age: 60 } }
       );
       return sendJson(response, 202, { jobId });

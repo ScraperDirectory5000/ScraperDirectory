@@ -15,8 +15,11 @@ interface NpiAddress {
 }
 
 interface NpiResult {
-  basic: { first_name?: string; last_name?: string; middle_name?: string };
+  number: string;
+  basic: { first_name?: string; last_name?: string; middle_name?: string; enumeration_date?: string; credential?: string };
   addresses?: NpiAddress[];
+  other_names?: Array<{ first_name?: string; last_name?: string; middle_name?: string }>;
+  taxonomies?: Array<{ code?: string; desc?: string; license?: string; state?: string; primary?: boolean }>;
 }
 
 interface NpiResponse {
@@ -32,7 +35,7 @@ export class NpiRegistryConnector implements Connector {
       version: "2.1",
       first_name: query.firstName,
       last_name: query.lastName,
-      limit: "20",
+      limit: "200",
     });
     if (query.state) params.set("state", query.state);
 
@@ -42,21 +45,44 @@ export class NpiRegistryConnector implements Connector {
     }
     const body = (await response.json()) as NpiResponse;
 
-    return (body.results ?? []).map((result) => ({
-      firstName: result.basic.first_name ?? query.firstName,
-      middleName: result.basic.middle_name,
-      lastName: result.basic.last_name ?? query.lastName,
-      source: this.sourceName,
-      addresses: (result.addresses ?? []).map((addr) => ({
-        line1: addr.address_1 ?? "",
-        line2: addr.address_2,
-        city: addr.city,
-        state: addr.state,
-        zipCode: addr.postal_code,
-      })),
-      phones: (result.addresses ?? [])
-        .filter((addr) => addr.telephone_number)
-        .map((addr) => ({ number: addr.telephone_number as string, phoneType: "landline" as const })),
-    }));
+    const requestedFirst = query.firstName.toLowerCase();
+    const requestedLast = query.lastName.toLowerCase();
+
+    return (body.results ?? []).flatMap((result) => {
+      const names = [result.basic, ...(result.other_names ?? [])];
+      const matchedName = names.find(
+        (name) =>
+          name.first_name?.toLowerCase() === requestedFirst && name.last_name?.toLowerCase() === requestedLast
+      );
+      if (!matchedName) return [];
+
+      const primaryTaxonomy = result.taxonomies?.find((taxonomy) => taxonomy.primary) ?? result.taxonomies?.[0];
+      return [{
+        externalId: result.number,
+        firstName: matchedName.first_name ?? query.firstName,
+        middleName: matchedName.middle_name,
+        lastName: matchedName.last_name ?? query.lastName,
+        source: this.sourceName,
+        addresses: (result.addresses ?? []).map((addr) => ({
+          line1: addr.address_1 ?? "",
+          line2: addr.address_2,
+          city: addr.city,
+          state: addr.state,
+          zipCode: addr.postal_code,
+        })),
+        phones: (result.addresses ?? [])
+          .filter((addr) => addr.telephone_number)
+          .map((addr) => ({ number: addr.telephone_number as string, phoneType: "landline" as const })),
+        records: [{
+          caseNumber: result.number,
+          courtName: primaryTaxonomy?.desc ?? result.basic.credential ?? "National Provider Identifier",
+          state: primaryTaxonomy?.state,
+          caseType: "professional_license",
+          filingDate: result.basic.enumeration_date,
+          disposition: primaryTaxonomy?.license ? `License ${primaryTaxonomy.license}` : primaryTaxonomy?.code,
+          sourceUrl: `https://npiregistry.cms.hhs.gov/provider-view/${result.number}`,
+        }],
+      }];
+    });
   }
 }

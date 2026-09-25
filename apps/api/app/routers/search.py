@@ -3,6 +3,7 @@ import time
 import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi import HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -35,7 +36,12 @@ def query_people(
         Person.last_name.ilike(f"%{last_name}%"),
     )
     if state:
-        query = query.filter(Person.addresses.any(state=state.upper()))
+        query = query.filter(
+            or_(
+                Person.addresses.any(state=state.upper()),
+                Person.court_records.any(state=state.upper()),
+            )
+        )
     if city:
         query = query.filter(Person.addresses.any(city=city))
     return query.limit(25).all()
@@ -88,9 +94,9 @@ def search(
     db.commit()
 
     people = query_people(db, first_name, last_name, state, city)
+    job_id = enqueue_scrape(first_name, last_name, state)
     scrape_status = "complete"
     if not people:
-        job_id = enqueue_scrape(first_name, last_name, state)
         deadline = time.monotonic() + settings.scraper_wait_seconds
         while time.monotonic() < deadline:
             time.sleep(0.5)
@@ -117,7 +123,10 @@ def search(
             last_name=p.last_name,
             age_estimate=p.age_estimate,
             cities=sorted({a.city for a in p.addresses if a.city}),
-            states=sorted({a.state for a in p.addresses if a.state}),
+            states=sorted(
+                {a.state for a in p.addresses if a.state}
+                | {record.state for record in p.court_records if record.state}
+            ),
         )
         for p in people
     ]

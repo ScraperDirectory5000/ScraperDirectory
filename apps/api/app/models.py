@@ -91,6 +91,16 @@ class Person(Base):
     court_records: Mapped[list["CourtRecord"]] = relationship(back_populates="person", cascade="all, delete-orphan")
 
 
+class PersonSourceIdentity(Base):
+    __tablename__ = "person_source_identities"
+    __table_args__ = (UniqueConstraint("source", "external_id", name="uq_person_source_identity"),)
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    person_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"))
+    source: Mapped[str] = mapped_column(String(120))
+    external_id: Mapped[str] = mapped_column(String(500))
+
+
 class RelativeLink(Base):
     __tablename__ = "relative_links"
     __table_args__ = (UniqueConstraint("person_id", "related_person_id", name="uq_relative_pair"),)

@@ -2,6 +2,7 @@
  * Connectors never write to the DB directly — they return this shape and
  * `normalize.ts` / `db.ts` handle merge/dedup and persistence. */
 export interface NormalizedPerson {
+  externalId?: string;
   firstName: string;
   middleName?: string;
   lastName: string;

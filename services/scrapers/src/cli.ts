@@ -11,7 +11,7 @@ async function main() {
 
   await scrapeQueue.add("scrape-person", {
     query: { firstName, lastName, state },
-    connectors: ["npi_registry", "sec_edgar"],
+    connectors: ["npi_registry", "sec_edgar", "fec_contributions"],
   });
 
   console.log(`Enqueued scrape job for ${firstName} ${lastName}${state ? ` (${state})` : ""}`);
