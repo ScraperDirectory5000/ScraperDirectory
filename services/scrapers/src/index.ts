@@ -5,6 +5,8 @@ import { connection, scrapeQueue, SCRAPE_QUEUE_NAME, type ScrapeJobData } from "
 import { NpiRegistryConnector } from "./connectors/npiRegistry.js";
 import { SecEdgarConnector } from "./connectors/secEdgar.js";
 import { FecContributionsConnector } from "./connectors/fecContributions.js";
+import { LocNewspapersConnector } from "./connectors/locNewspapers.js";
+import { GdeltNewsConnector } from "./connectors/gdeltNews.js";
 import { persistNormalizedPerson } from "./db.js";
 import type { Connector } from "./types.js";
 
@@ -12,6 +14,8 @@ const CONNECTORS: Record<string, Connector> = {
   npi_registry: new NpiRegistryConnector(),
   sec_edgar: new SecEdgarConnector(),
   fec_contributions: new FecContributionsConnector(),
+  loc_newspapers: new LocNewspapersConnector(),
+  gdelt_news: new GdeltNewsConnector(),
 };
 
 const worker = new Worker<ScrapeJobData>(
@@ -38,6 +42,9 @@ const worker = new Worker<ScrapeJobData>(
     if (outcomes.every((outcome) => outcome.status === "rejected")) {
       throw new Error("All requested public-record connectors failed");
     }
+    return {
+      failures: outcomes.flatMap((outcome, index) => outcome.status === "rejected" ? [targets[index]] : []),
+    };
   },
   { connection }
 );
@@ -96,7 +103,12 @@ const server = createServer(async (request, response) => {
       const jobId = decodeURIComponent(request.url.slice("/jobs/".length));
       const job = await scrapeQueue.getJob(jobId);
       if (!job) return sendJson(response, 404, { detail: "Job not found" });
-      return sendJson(response, 200, { jobId, state: await job.getState(), failedReason: job.failedReason || null });
+      return sendJson(response, 200, {
+        jobId,
+        state: await job.getState(),
+        failedReason: job.failedReason || null,
+        failures: job.returnvalue?.failures ?? [],
+      });
     }
 
     return sendJson(response, 404, { detail: "Not found" });

@@ -32,6 +32,12 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
         <p className="mt-6 text-slate-600">Public sources are still being searched. Refresh shortly.</p>
       )}
 
+      {data?.status === "partial" && (
+        <p className="mt-6 text-amber-700">
+          Some public sources were temporarily unavailable: {data.provider_failures.join(", ")}. Results below are partial.
+        </p>
+      )}
+
       {data && data.status === "complete" && data.total === 0 && (
         <p className="mt-6 text-slate-600">No public records found for that name and location.</p>
       )}

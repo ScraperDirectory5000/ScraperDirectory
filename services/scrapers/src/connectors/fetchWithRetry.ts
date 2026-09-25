@@ -6,6 +6,7 @@ function retryDelay(response: Response | undefined, attempt: number): number {
     const seconds = Number(retryAfter);
     if (Number.isFinite(seconds)) return Math.min(seconds * 1_000, 10_000);
   }
+  if (response?.status === 429) return 5_500;
   return 500 * 2 ** attempt;
 }
 

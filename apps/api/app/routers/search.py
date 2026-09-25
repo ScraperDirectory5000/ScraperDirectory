@@ -63,12 +63,12 @@ def enqueue_scrape(first_name: str, last_name: str, state: str | None) -> str:
         ) from exc
 
 
-def scrape_job_state(job_id: str) -> tuple[str, str | None]:
+def scrape_job_state(job_id: str) -> tuple[str, str | None, list[str]]:
     try:
         response = httpx.get(f"{settings.scraper_service_url}/jobs/{job_id}", timeout=5.0)
         response.raise_for_status()
         body = response.json()
-        return body["state"], body.get("failedReason")
+        return body["state"], body.get("failedReason"), body.get("failures", [])
     except (httpx.HTTPError, KeyError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -96,13 +96,16 @@ def search(
     people = query_people(db, first_name, last_name, state, city)
     job_id = enqueue_scrape(first_name, last_name, state)
     scrape_status = "complete"
+    provider_failures: list[str] = []
     if not people:
         deadline = time.monotonic() + settings.scraper_wait_seconds
         while time.monotonic() < deadline:
-            job_state, failure = scrape_job_state(job_id)
+            job_state, failure, provider_failures = scrape_job_state(job_id)
             if job_state == "completed":
                 db.expire_all()
                 people = query_people(db, first_name, last_name, state, city)
+                if provider_failures:
+                    scrape_status = "partial"
                 break
             if job_state == "failed":
                 raise HTTPException(
@@ -130,4 +133,9 @@ def search(
         )
         for p in people
     ]
-    return SearchResponse(total=len(results), results=results, status=scrape_status)
+    return SearchResponse(
+        total=len(results),
+        results=results,
+        status=scrape_status,
+        provider_failures=provider_failures,
+    )

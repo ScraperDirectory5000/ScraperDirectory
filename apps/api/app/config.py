@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     opensearch_url: str = "http://localhost:9200"
     opensearch_index: str = "persons"
     scraper_service_url: str = "http://localhost:3001"
-    scraper_wait_seconds: float = 20.0
+    scraper_wait_seconds: float = 35.0
 
     jwt_secret: str = "change-me-to-a-long-random-value"
     jwt_algorithm: str = "HS256"

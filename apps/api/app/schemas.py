@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class AddressOut(BaseModel):
@@ -93,6 +93,7 @@ class SearchResponse(BaseModel):
     total: int
     results: list[PersonSummary]
     status: str = "complete"
+    provider_failures: list[str] = Field(default_factory=list)
 
 
 class UserCreate(BaseModel):
