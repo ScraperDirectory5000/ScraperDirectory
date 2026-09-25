@@ -1,4 +1,5 @@
 import type { Connector, NormalizedPerson, PersonQuery } from "../types.js";
+import { fetchWithRetry } from "./fetchWithRetry.js";
 
 /** SEC EDGAR full-text search — free public API covering business filings that
  * mention a name (officers, directors, registered agents, etc.).
@@ -34,7 +35,7 @@ export class SecEdgarConnector implements Connector {
     const q = `"${query.firstName} ${query.lastName}"`;
     const params = new URLSearchParams({ q });
 
-    const response = await fetch(`${BASE_URL}?${params.toString()}`, {
+    const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`, {
       headers: { "User-Agent": this.userAgent },
     });
     if (!response.ok) {

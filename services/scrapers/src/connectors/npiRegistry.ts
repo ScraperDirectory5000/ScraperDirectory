@@ -1,4 +1,5 @@
 import type { Connector, NormalizedPerson, PersonQuery } from "../types.js";
+import { fetchWithRetry } from "./fetchWithRetry.js";
 
 /** NPI Registry — free public API for U.S. healthcare provider directory data.
  * No auth, no rate-limit key required. Docs: https://npiregistry.cms.hhs.gov/api-page */
@@ -39,7 +40,7 @@ export class NpiRegistryConnector implements Connector {
     });
     if (query.state) params.set("state", query.state);
 
-    const response = await fetch(`${BASE_URL}?${params.toString()}`);
+    const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
     if (!response.ok) {
       throw new Error(`NPI registry request failed: ${response.status}`);
     }

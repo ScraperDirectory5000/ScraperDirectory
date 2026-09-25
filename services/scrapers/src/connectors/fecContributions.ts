@@ -1,4 +1,5 @@
 import type { Connector, NormalizedPerson, PersonQuery } from "../types.js";
+import { fetchWithRetry } from "./fetchWithRetry.js";
 
 const BASE_URL = "https://api.open.fec.gov/v1/schedules/schedule_a/";
 
@@ -47,7 +48,7 @@ export class FecContributionsConnector implements Connector {
     });
     if (query.state) params.set("contributor_state", query.state);
 
-    const response = await fetch(`${BASE_URL}?${params.toString()}`);
+    const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`);
     if (!response.ok) throw new Error(`FEC API request failed: ${response.status}`);
     const body = (await response.json()) as FecResponse;
     const requestedFirst = query.firstName.toUpperCase();
