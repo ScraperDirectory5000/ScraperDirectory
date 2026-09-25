@@ -48,8 +48,10 @@ export async function persistNormalizedPerson(person: NormalizedPerson): Promise
     for (const phone of person.phones ?? []) {
       await client.query(
         `INSERT INTO phones (id, person_id, number, phone_type, source)
-         SELECT gen_random_uuid(), $1, $2, $3, $4
-         WHERE NOT EXISTS (SELECT 1 FROM phones WHERE person_id = $1 AND number = $2)`,
+         SELECT gen_random_uuid(), $1, $2::varchar, $3, $4
+         WHERE NOT EXISTS (
+           SELECT 1 FROM phones WHERE person_id = $1 AND number = $2::varchar
+         )`,
         [personId, phone.number, phone.phoneType ?? null, person.source]
       );
     }
@@ -57,8 +59,10 @@ export async function persistNormalizedPerson(person: NormalizedPerson): Promise
     for (const email of person.emails ?? []) {
       await client.query(
         `INSERT INTO emails (id, person_id, email, source)
-         SELECT gen_random_uuid(), $1, $2, $3
-         WHERE NOT EXISTS (SELECT 1 FROM emails WHERE person_id = $1 AND email = $2)`,
+         SELECT gen_random_uuid(), $1, $2::varchar, $3
+         WHERE NOT EXISTS (
+           SELECT 1 FROM emails WHERE person_id = $1 AND email = $2::varchar
+         )`,
         [personId, email.email, person.source]
       );
     }
