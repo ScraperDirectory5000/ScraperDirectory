@@ -28,7 +28,11 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
 
       {error && <p className="mt-4 text-red-600">{error}</p>}
 
-      {data && data.total === 0 && (
+      {data?.status === "processing" && (
+        <p className="mt-6 text-slate-600">Public sources are still being searched. Refresh shortly.</p>
+      )}
+
+      {data && data.status === "complete" && data.total === 0 && (
         <p className="mt-6 text-slate-600">No public records found for that name and location.</p>
       )}
 

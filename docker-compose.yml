@@ -44,6 +44,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-unnamedfiles}:${POSTGRES_PASSWORD:-change-me-locally}@postgres:5432/${POSTGRES_DB:-unnamedfiles}
       REDIS_URL: redis://redis:6379/0
       OPENSEARCH_URL: http://opensearch:9200
+      SCRAPER_SERVICE_URL: http://scraper-worker:3001
     ports:
       - "8000:8000"
     depends_on:

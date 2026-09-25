@@ -13,6 +13,7 @@ export interface PersonSummary {
 export interface SearchResponse {
   total: number;
   results: PersonSummary[];
+  status: "complete" | "processing";
 }
 
 export async function searchPeople(params: {

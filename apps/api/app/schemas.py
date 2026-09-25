@@ -92,6 +92,7 @@ class SearchRequest(BaseModel):
 class SearchResponse(BaseModel):
     total: int
     results: list[PersonSummary]
+    status: str = "complete"
 
 
 class UserCreate(BaseModel):

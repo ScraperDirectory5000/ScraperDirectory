@@ -46,6 +46,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       OPENSEARCH_URL: http://opensearch:9200
+      SCRAPER_SERVICE_URL: http://scraper-worker:3001
     depends_on:
       postgres:
         condition: service_healthy
