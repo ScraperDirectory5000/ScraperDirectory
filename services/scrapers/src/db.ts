@@ -101,12 +101,12 @@ export async function persistNormalizedPerson(person: NormalizedPerson): Promise
          )`,
         [
           personId,
-          record.caseNumber ?? null,
-          record.courtName ?? null,
+          record.caseNumber?.slice(0, 80) ?? null,
+          record.courtName?.slice(0, 200) ?? null,
           record.state ?? null,
-          record.caseType ?? null,
+          record.caseType?.slice(0, 80) ?? null,
           record.filingDate ?? null,
-          record.disposition ?? null,
+          record.disposition?.slice(0, 200) ?? null,
           record.sourceUrl ?? null,
         ]
       );
