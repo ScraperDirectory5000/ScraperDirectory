@@ -117,6 +117,12 @@ def search(
             db.expire_all()
             people = query_people(db, first_name, last_name, state, city)
             scrape_status = "processing"
+    else:
+        job_state, _, provider_failures = scrape_job_state(job_id)
+        if job_state in {"active", "delayed", "prioritized", "waiting", "waiting-children"}:
+            scrape_status = "processing"
+        elif job_state == "failed" or provider_failures:
+            scrape_status = "partial"
 
     results = [
         PersonSummary(
