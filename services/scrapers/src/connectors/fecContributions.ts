@@ -62,8 +62,6 @@ export class FecContributionsConnector implements Connector {
         parsed.middleName ?? "",
         parsed.lastName,
         contribution.contributor_zip?.slice(0, 5) ?? "",
-        contribution.contributor_employer ?? "",
-        contribution.contributor_occupation ?? "",
       ];
       const detail = [
         contribution.contribution_receipt_amount != null

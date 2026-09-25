@@ -99,20 +99,20 @@ def search(
     if not people:
         deadline = time.monotonic() + settings.scraper_wait_seconds
         while time.monotonic() < deadline:
-            time.sleep(0.5)
-            db.expire_all()
-            people = query_people(db, first_name, last_name, state, city)
-            if people:
-                break
             job_state, failure = scrape_job_state(job_id)
             if job_state == "completed":
+                db.expire_all()
+                people = query_people(db, first_name, last_name, state, city)
                 break
             if job_state == "failed":
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
                     detail=failure or "Public-record providers failed",
                 )
+            time.sleep(0.5)
         else:
+            db.expire_all()
+            people = query_people(db, first_name, last_name, state, city)
             scrape_status = "processing"
 
     results = [
