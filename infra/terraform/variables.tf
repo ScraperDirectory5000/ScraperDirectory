@@ -19,7 +19,7 @@ variable "cloudflare_zone_id" {
 
 variable "api_image" {
   type        = string
-  description = "Fully qualified container image for the API, e.g. gcr.io/PROJECT/peoplefinder-api:TAG"
+  description = "Fully qualified container image for the API, e.g. gcr.io/PROJECT/unnamedfiles-api:TAG"
 }
 
 variable "web_image" {

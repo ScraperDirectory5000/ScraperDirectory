@@ -22,8 +22,8 @@ separately to Vercel.
    ```
 5. Clone the repo onto the VM:
    ```bash
-   git clone <your-repo-url> peoplefinder
-   cd peoplefinder/infra/oracle-vm
+   git clone <your-repo-url> unnamedfiles
+   cd unnamedfiles/infra/oracle-vm
    cp .env.example .env   # then edit with real secrets
    ```
 
@@ -35,7 +35,7 @@ separately to Vercel.
    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64 -o cloudflared
    chmod +x cloudflared && sudo mv cloudflared /usr/local/bin/
    cloudflared tunnel login
-   cloudflared tunnel create peoplefinder-api
+   cloudflared tunnel create unnamedfiles-api
    ```
    This prints a tunnel UUID and writes a credentials JSON file
    (usually `~/.cloudflared/<UUID>.json`).
@@ -44,7 +44,7 @@ separately to Vercel.
    in the tunnel UUID and credentials file path (see comments in the file).
 5. Route DNS to the tunnel:
    ```bash
-   cloudflared tunnel route dns peoplefinder-api api.yourdomain.com
+   cloudflared tunnel route dns unnamedfiles-api api.unnamedfiles.com
    ```
 
 ## 3. Bring the stack up
@@ -57,7 +57,7 @@ docker compose -f docker-compose.prod.yml exec api alembic revision --autogenera
 docker compose -f docker-compose.prod.yml exec api alembic upgrade head
 ```
 
-`api.yourdomain.com` should now serve the FastAPI app through Cloudflare, with
+`api.unnamedfiles.com` should now serve the FastAPI app through Cloudflare, with
 TLS handled automatically by Cloudflare — no certbot/Let's Encrypt needed on
 the VM itself.
 
@@ -66,12 +66,10 @@ For future deploys, just run `./deploy.sh` from this directory.
 ## 4. Deploy the frontend to Vercel
 
 1. Import the repo into Vercel, set the project root to `apps/web`.
-2. Set the environment variable `NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com`.
-3. Deploy. Vercel gives you `your-app.vercel.app` plus the option to attach a
-   custom domain (can also be proxied through Cloudflare for one consistent DNS zone).
-4. Update `API_CORS_ORIGINS` in the VM's `.env` to include the real Vercel/custom
-   domain, then re-run `docker compose -f docker-compose.prod.yml up -d` to
-   pick up the change.
+2. Set the environment variable `NEXT_PUBLIC_API_BASE_URL=https://api.unnamedfiles.com`.
+3. Attach `unnamedfiles.com` as the Vercel custom domain and deploy.
+4. Keep `API_CORS_ORIGINS` in the VM's `.env` set to `https://unnamedfiles.com,https://www.unnamedfiles.com`,
+   then re-run `docker compose -f docker-compose.prod.yml up -d` to pick up changes.
 
 ## Notes / limits
 

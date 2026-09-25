@@ -26,7 +26,7 @@ export class SecEdgarConnector implements Connector {
 
   private userAgent: string;
 
-  constructor(userAgent = process.env.SEC_EDGAR_USER_AGENT ?? "peoplefinder-dev contact@example.com") {
+  constructor(userAgent = process.env.SEC_EDGAR_USER_AGENT ?? "unnamedfiles-dev contact@example.com") {
     this.userAgent = userAgent;
   }
 

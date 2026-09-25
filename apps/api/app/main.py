@@ -6,7 +6,7 @@ from app.routers import auth, optout, payments, persons, search
 
 settings = get_settings()
 
-app = FastAPI(title="People Finder API", version="0.1.0")
+app = FastAPI(title="Unnamed Files API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

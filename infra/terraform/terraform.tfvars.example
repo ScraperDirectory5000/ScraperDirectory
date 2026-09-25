@@ -1,6 +1,6 @@
 gcp_project_id       = "your-gcp-project-id"
 cloudflare_api_token = "your-cloudflare-api-token"
 cloudflare_zone_id   = "your-cloudflare-zone-id"
-api_image            = "gcr.io/your-gcp-project-id/peoplefinder-api:latest"
-web_image            = "gcr.io/your-gcp-project-id/peoplefinder-web:latest"
+api_image            = "gcr.io/your-gcp-project-id/unnamedfiles-api:latest"
+web_image            = "gcr.io/your-gcp-project-id/unnamedfiles-web:latest"
 database_url         = "postgresql+psycopg://user:pass@/dbname?host=/cloudsql/CONNECTION_NAME"

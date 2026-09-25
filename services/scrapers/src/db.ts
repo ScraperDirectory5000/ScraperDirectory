@@ -34,9 +34,12 @@ export async function persistNormalizedPerson(person: NormalizedPerson): Promise
       if (!address.line1) continue;
       await client.query(
         `INSERT INTO addresses (id, person_id, line1, line2, city, state, zip_code, source)
-         SELECT gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7
+         SELECT gen_random_uuid(), $1, $2::varchar, $3, $4, $5, $6::varchar, $7
          WHERE NOT EXISTS (
-           SELECT 1 FROM addresses WHERE person_id = $1 AND line1 = $2 AND coalesce(zip_code,'') = coalesce($6,'')
+           SELECT 1 FROM addresses
+           WHERE person_id = $1
+             AND line1 = $2::varchar
+             AND coalesce(zip_code, '') = coalesce($6::varchar, '')
          )`,
         [personId, address.line1, address.line2 ?? null, address.city ?? null, address.state ?? null, address.zipCode ?? null, person.source]
       );

@@ -1,18 +1,18 @@
-name: peoplefinder
+name: unnamedfiles
 
 services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-peoplefinder}
+      POSTGRES_USER: ${POSTGRES_USER:-unnamedfiles}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-locally}
-      POSTGRES_DB: ${POSTGRES_DB:-peoplefinder}
+      POSTGRES_DB: ${POSTGRES_DB:-unnamedfiles}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-peoplefinder}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-unnamedfiles}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -41,7 +41,7 @@ services:
       context: ./apps/api
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-peoplefinder}:${POSTGRES_PASSWORD:-change-me-locally}@postgres:5432/${POSTGRES_DB:-peoplefinder}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-unnamedfiles}:${POSTGRES_PASSWORD:-change-me-locally}@postgres:5432/${POSTGRES_DB:-unnamedfiles}
       REDIS_URL: redis://redis:6379/0
       OPENSEARCH_URL: http://opensearch:9200
     ports:
@@ -59,7 +59,7 @@ services:
       context: ./services/scrapers
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-peoplefinder}:${POSTGRES_PASSWORD:-change-me-locally}@postgres:5432/${POSTGRES_DB:-peoplefinder}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-unnamedfiles}:${POSTGRES_PASSWORD:-change-me-locally}@postgres:5432/${POSTGRES_DB:-unnamedfiles}
       REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:

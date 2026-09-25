@@ -24,7 +24,7 @@ provider "cloudflare" {
 # --- Cloud Run services (deployed via CI once images are built) ---
 
 resource "google_cloud_run_v2_service" "api" {
-  name     = "peoplefinder-api"
+  name     = "unnamedfiles-api"
   location = var.gcp_region
 
   template {
@@ -39,7 +39,7 @@ resource "google_cloud_run_v2_service" "api" {
 }
 
 resource "google_cloud_run_v2_service" "web" {
-  name     = "peoplefinder-web"
+  name     = "unnamedfiles-web"
   location = var.gcp_region
 
   template {
@@ -52,7 +52,7 @@ resource "google_cloud_run_v2_service" "web" {
 # --- Cloud SQL (Postgres) ---
 
 resource "google_sql_database_instance" "main" {
-  name             = "peoplefinder-db"
+  name             = "unnamedfiles-db"
   database_version = "POSTGRES_16"
   region           = var.gcp_region
 

@@ -3,6 +3,6 @@
 # credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
 #
 # ingress:
-#   - hostname: api.yourdomain.com
+#   - hostname: api.unnamedfiles.com
 #     service: http://api:8000
 #   - service: http_status:404
