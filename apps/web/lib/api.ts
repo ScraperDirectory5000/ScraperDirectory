@@ -70,6 +70,28 @@ export interface PersonDetail extends PersonSummary {
   usernames: Array<{ username: string; platform_guess?: string }>;
   social_profiles: Array<{ platform: string; url: string }>;
   court_records: Array<{ case_number?: string; court_name?: string; state?: string; case_type?: string }>;
+  life_events: Array<{
+    event_type: string;
+    event_date?: string | null;
+    state?: string | null;
+    locality?: string | null;
+    description?: string | null;
+    source: string;
+    source_record_id: string;
+    source_url: string;
+    confidence: number;
+  }>;
+  relationship_claims: Array<{
+    relation_type: string;
+    related_first_name: string;
+    related_middle_name?: string | null;
+    related_last_name: string;
+    event_date?: string | null;
+    source: string;
+    source_record_id: string;
+    source_url: string;
+    confidence: number;
+  }>;
 }
 
 export async function getPerson(id: string, accessToken: string): Promise<PersonDetail> {

@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test dist/connectors/*.test.js",
+    "test": "npm run build && node --test dist/**/*.test.js",
     "start": "node dist/index.js",
+    "bulk:ingest": "tsx src/bulk/cli.ts",
+    "bulk:start": "node dist/bulk/worker.js",
     "enqueue": "tsx src/cli.ts"
   },
   "dependencies": {

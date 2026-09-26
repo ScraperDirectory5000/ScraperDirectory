@@ -116,6 +116,31 @@ export default function PersonPage() {
         ))}
       </Section>
 
+      <Section title="Life events">
+        {person.life_events.length === 0 ? <p>No documented life events found.</p> : person.life_events.map((event) => (
+          <p key={`${event.source}:${event.source_record_id}:${event.event_type}`}>
+            <a href={event.source_url} target="_blank" rel="noreferrer" className="text-brand-700 underline">
+              {event.event_type.replaceAll("_", " ")}
+            </a>
+            {event.event_date ? ` · ${event.event_date}` : ""}
+            {event.locality ? ` · ${event.locality}` : ""}
+            {event.state ? `, ${event.state}` : ""}
+          </p>
+        ))}
+      </Section>
+
+      <Section title="Documented adult relationships">
+        {person.relationship_claims.length === 0 ? <p>No documented adult relationships found.</p> : person.relationship_claims.map((claim) => (
+          <p key={`${claim.source}:${claim.source_record_id}:${claim.relation_type}:${claim.related_first_name}:${claim.related_last_name}`}>
+            {claim.relation_type.replaceAll("_", " ")} · {claim.related_first_name}{" "}
+            {claim.related_middle_name ? `${claim.related_middle_name} ` : ""}{claim.related_last_name}{" · "}
+            <a href={claim.source_url} target="_blank" rel="noreferrer" className="text-brand-700 underline">
+              source
+            </a>
+          </p>
+        ))}
+      </Section>
+
       <Section title="Public social profiles">
         {person.social_profiles.map((s, i) => (
           <a key={i} href={s.url} target="_blank" rel="noreferrer" className="text-brand-700 underline block">

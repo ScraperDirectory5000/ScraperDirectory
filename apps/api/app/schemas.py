@@ -55,6 +55,32 @@ class CourtRecordOut(BaseModel):
     source_url: str | None = None
 
 
+class LifeEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    event_type: str
+    event_date: date | None = None
+    state: str | None = None
+    locality: str | None = None
+    description: str | None = None
+    source: str
+    source_record_id: str
+    source_url: str
+    confidence: float
+
+
+class RelationshipClaimOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    relation_type: str
+    related_first_name: str
+    related_middle_name: str | None = None
+    related_last_name: str
+    event_date: date | None = None
+    source: str
+    source_record_id: str
+    source_url: str
+    confidence: float
+
+
 class PersonSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
@@ -80,6 +106,8 @@ class PersonDetail(BaseModel):
     usernames: list[UsernameOut] = []
     social_profiles: list[SocialProfileOut] = []
     court_records: list[CourtRecordOut] = []
+    life_events: list[LifeEventOut] = []
+    relationship_claims: list[RelationshipClaimOut] = []
 
 
 class SearchRequest(BaseModel):
@@ -92,6 +120,18 @@ class SearchRequest(BaseModel):
 class ProviderProgress(BaseModel):
     status: str = "waiting"
     records: int = 0
+
+
+class BulkSourceStatus(BaseModel):
+    source: str
+    dataset_version: str
+    status: str
+    source_rows: int
+    accepted_rows: int
+    rejected_rows: int
+    started_at: datetime
+    finished_at: datetime | None = None
+    error: str | None = None
 
 
 class SearchResponse(BaseModel):

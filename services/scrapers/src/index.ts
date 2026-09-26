@@ -1,27 +1,86 @@
-import { createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Worker } from "bullmq";
 import { connection, scrapeQueue, SCRAPE_QUEUE_NAME, type ScrapeJobData } from "./queue.js";
 import { NpiRegistryConnector } from "./connectors/npiRegistry.js";
 import { SecEdgarConnector } from "./connectors/secEdgar.js";
-import { FecContributionsConnector } from "./connectors/fecContributions.js";
 import { LocNewspapersConnector } from "./connectors/locNewspapers.js";
 import { GdeltNewsConnector } from "./connectors/gdeltNews.js";
 import { IdahoCorrectionsConnector } from "./connectors/idahoCorrections.js";
+import { CaliforniaCorrectionsConnector } from "./connectors/californiaCorrections.js";
+import { MarylandCorrectionsConnector } from "./connectors/marylandCorrections.js";
+import { AlabamaCorrectionsConnector } from "./connectors/alabamaCorrections.js";
+import { DelawareDelprosLicensesConnector } from "./connectors/delawareDelprosLicenses.js";
+import { GeorgiaCorrectionsConnector } from "./connectors/georgiaCorrections.js";
+import { IllinoisCorrectionsConnector } from "./connectors/illinoisCorrections.js";
+import { IowaCorrectionsConnector } from "./connectors/iowaCorrections.js";
+import { MissouriFinanceEntitiesConnector } from "./connectors/missouriFinanceEntities.js";
+import { NewYorkDosLicensesConnector } from "./connectors/newYorkDosLicenses.js";
+import { NorthDakotaCorrectionsConnector } from "./connectors/northDakotaCorrections.js";
+import { OhioCorrectionsConnector } from "./connectors/ohioCorrections.js";
+import { OregonCorrectionsConnector } from "./connectors/oregonCorrections.js";
+import { PennsylvaniaCorrectionsConnector } from "./connectors/pennsylvaniaCorrections.js";
+import { SouthCarolinaCorrectionsConnector } from "./connectors/southCarolinaCorrections.js";
+import { VermontCorrectionsConnector } from "./connectors/vermontCorrections.js";
+import { VirginiaDporLicensesConnector } from "./connectors/virginiaDporLicenses.js";
+import { WashingtonCorrectionsConnector } from "./connectors/washingtonCorrections.js";
+import { WyomingCorrectionsConnector } from "./connectors/wyomingCorrections.js";
 import { persistNormalizedPerson } from "./db.js";
+import { searchJobId } from "./jobIdentity.js";
 import type { Connector, PersonQuery } from "./types.js";
 
 const CONNECTORS: Record<string, Connector> = {
   npi_registry: new NpiRegistryConnector(),
   sec_edgar: new SecEdgarConnector(),
-  fec_contributions: new FecContributionsConnector(),
   loc_newspapers: new LocNewspapersConnector(),
   idaho_corrections: new IdahoCorrectionsConnector(),
+  california_corrections: new CaliforniaCorrectionsConnector(),
+  maryland_corrections: new MarylandCorrectionsConnector(),
+  alabama_corrections: new AlabamaCorrectionsConnector(),
+  delaware_delpros_licenses: new DelawareDelprosLicensesConnector(),
+  georgia_corrections: new GeorgiaCorrectionsConnector(),
+  illinois_corrections: new IllinoisCorrectionsConnector(),
+  iowa_corrections: new IowaCorrectionsConnector(),
+  missouri_finance_entities: new MissouriFinanceEntitiesConnector(),
+  new_york_dos_licenses: new NewYorkDosLicensesConnector(),
+  north_dakota_corrections: new NorthDakotaCorrectionsConnector(),
+  ohio_corrections: new OhioCorrectionsConnector(),
+  oregon_corrections: new OregonCorrectionsConnector(),
+  pennsylvania_corrections: new PennsylvaniaCorrectionsConnector(),
+  south_carolina_corrections: new SouthCarolinaCorrectionsConnector(),
+  vermont_corrections: new VermontCorrectionsConnector(),
+  virginia_dpor_licenses: new VirginiaDporLicensesConnector(),
+  washington_corrections: new WashingtonCorrectionsConnector(),
+  wyoming_corrections: new WyomingCorrectionsConnector(),
 };
 if (process.env.ENABLE_GDELT_NEWS === "true") CONNECTORS.gdelt_news = new GdeltNewsConnector();
 
+const STATE_CONNECTORS: Record<string, string> = {
+  AL: "alabama_corrections",
+  CA: "california_corrections",
+  DE: "delaware_delpros_licenses",
+  GA: "georgia_corrections",
+  ID: "idaho_corrections",
+  IA: "iowa_corrections",
+  IL: "illinois_corrections",
+  MD: "maryland_corrections",
+  MO: "missouri_finance_entities",
+  ND: "north_dakota_corrections",
+  NY: "new_york_dos_licenses",
+  OH: "ohio_corrections",
+  OR: "oregon_corrections",
+  PA: "pennsylvania_corrections",
+  SC: "south_carolina_corrections",
+  VA: "virginia_dpor_licenses",
+  VT: "vermont_corrections",
+  WA: "washington_corrections",
+  WY: "wyoming_corrections",
+};
+
 function connectorsForQuery(query: PersonQuery): string[] {
-  return Object.keys(CONNECTORS).filter((name) => name !== "idaho_corrections" || query.state === "ID");
+  const stateConnectorNames = new Set(Object.values(STATE_CONNECTORS));
+  return Object.keys(CONNECTORS).filter((name) =>
+    !stateConnectorNames.has(name) || STATE_CONNECTORS[query.state ?? ""] === name
+  );
 }
 
 const worker = new Worker<ScrapeJobData>(
@@ -119,11 +178,11 @@ const server = createServer(async (request, response) => {
         return sendJson(response, 400, { detail: "firstName and lastName are required" });
       }
 
-      const key = `${query.firstName.toLowerCase()}|${query.lastName.toLowerCase()}|${query.state ?? ""}`;
-      const jobId = `search-${createHash("sha256").update(key).digest("hex").slice(0, 32)}`;
+      const connectorNames = connectorsForQuery(query);
+      const jobId = searchJobId(query, connectorNames);
       await scrapeQueue.add(
         "scrape-person",
-        { query, connectors: connectorsForQuery(query) },
+        { query, connectors: connectorNames },
         { jobId, removeOnComplete: { age: 300 }, removeOnFail: { age: 60 } }
       );
       return sendJson(response, 202, { jobId });

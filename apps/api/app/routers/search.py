@@ -25,13 +25,14 @@ def query_people(
 ) -> list[Person]:
     try:
         person_ids = search_persons(first_name, last_name, state=state, city=city)
-        people = db.query(Person).filter(Person.id.in_(person_ids)).all() if person_ids else []
+        people = db.query(Person).filter(Person.id.in_(person_ids), Person.is_active.is_(True)).all() if person_ids else []
         if people:
             return people
     except Exception:
         pass
 
     query = db.query(Person).filter(
+        Person.is_active.is_(True),
         Person.first_name.ilike(f"%{first_name}%"),
         Person.last_name.ilike(f"%{last_name}%"),
     )

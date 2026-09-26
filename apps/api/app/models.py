@@ -14,6 +14,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -76,6 +77,7 @@ class Person(Base):
     last_name: Mapped[str] = mapped_column(String(100), index=True)
     dob_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     age_estimate: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -89,6 +91,10 @@ class Person(Base):
         back_populates="person", cascade="all, delete-orphan"
     )
     court_records: Mapped[list["CourtRecord"]] = relationship(back_populates="person", cascade="all, delete-orphan")
+    life_events: Mapped[list["LifeEvent"]] = relationship(back_populates="person", cascade="all, delete-orphan")
+    relationship_claims: Mapped[list["RelationshipClaim"]] = relationship(
+        back_populates="person", cascade="all, delete-orphan"
+    )
 
 
 class PersonSourceIdentity(Base):
@@ -110,6 +116,56 @@ class RelativeLink(Base):
     related_person_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("persons.id"))
     relation_type: Mapped[str | None] = mapped_column(String(50), nullable=True)  # spouse, parent, sibling, assoc.
     source: Mapped[str | None] = mapped_column(String(120), nullable=True)
+
+
+class LifeEvent(Base):
+    __tablename__ = "life_events"
+    __table_args__ = (
+        UniqueConstraint("person_id", "source", "source_record_id", "event_type", name="uq_life_event_evidence"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    person_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"), index=True)
+    event_type: Mapped[str] = mapped_column(String(30))
+    event_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    state: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    locality: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(120))
+    source_record_id: Mapped[str] = mapped_column(String(500))
+    source_url: Mapped[str] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(Numeric(3, 2))
+
+    person: Mapped["Person"] = relationship(back_populates="life_events")
+
+
+class RelationshipClaim(Base):
+    __tablename__ = "relationship_claims"
+    __table_args__ = (
+        UniqueConstraint(
+            "person_id",
+            "source",
+            "source_record_id",
+            "relation_type",
+            "related_first_name",
+            "related_last_name",
+            name="uq_relationship_claim_evidence",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    person_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("persons.id", ondelete="CASCADE"), index=True)
+    relation_type: Mapped[str] = mapped_column(String(30))
+    related_first_name: Mapped[str] = mapped_column(String(100))
+    related_middle_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    related_last_name: Mapped[str] = mapped_column(String(100))
+    event_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    source: Mapped[str] = mapped_column(String(120))
+    source_record_id: Mapped[str] = mapped_column(String(500))
+    source_url: Mapped[str] = mapped_column(Text)
+    confidence: Mapped[float] = mapped_column(Numeric(3, 2))
+
+    person: Mapped["Person"] = relationship(back_populates="relationship_claims")
 
 
 class Address(Base):
@@ -192,6 +248,7 @@ class CourtRecord(Base):
     filing_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     disposition: Mapped[str | None] = mapped_column(String(200), nullable=True)
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     person: Mapped["Person"] = relationship(back_populates="court_records")
 
@@ -205,6 +262,26 @@ class RecordSource(Base):
     jurisdiction: Mapped[str | None] = mapped_column(String(80), nullable=True)
     source_type: Mapped[str] = mapped_column(String(50))  # court, property, business, license, npi, corrections
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class BulkImportRun(Base):
+    __tablename__ = "bulk_import_runs"
+    __table_args__ = (
+        UniqueConstraint("source", "dataset_version", name="uq_bulk_import_source_version"),
+    )
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    source: Mapped[str] = mapped_column(String(120), index=True)
+    dataset_version: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(20))
+    cursor: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source_rows: Mapped[int] = mapped_column(Integer, default=0)
+    accepted_rows: Mapped[int] = mapped_column(Integer, default=0)
+    rejected_rows: Mapped[int] = mapped_column(Integer, default=0)
+    metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class ScrapeJob(Base):

@@ -44,6 +44,11 @@ Tunnel. See [infra/oracle-vm/README.md](infra/oracle-vm/README.md) for the full 
 - Scraper connectors only target sources that are genuinely public and don't require
   bypassing authentication or bot-detection (see `services/scrapers/src/connectors`).
   Do not add connectors that log into social platforms or solve CAPTCHAs.
+- FEC individual-contributor records are intentionally excluded from runtime ingestion:
+  52 U.S.C. 30111(a)(4) prohibits using those records to solicit contributions or for commercial purposes.
+- Scheduled bulk ingestion currently supports Connecticut's public-domain credential
+  dataset and the HHS OIG LEIE. LEIE name matches are unverified leads and must retain
+  the official identity-verification warning; they are not proof that a searched person is excluded.
 - Compliance (opt-out portal, permissible-purpose gating, full audit trail) is
   intentionally minimal right now per product decision — `optout_requests` and
   `search_audit_log` tables exist as groundwork but are not enforced end-to-end yet.

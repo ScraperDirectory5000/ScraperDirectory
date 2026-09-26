@@ -70,6 +70,19 @@ services:
       redis:
         condition: service_started
 
+  bulk-ingest-worker:
+    build:
+      context: ../../services/scrapers
+    command: ["node", "dist/bulk/worker.js"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      BULK_SOURCES: connecticut_state_licenses,hhs_oig_leie
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped

@@ -68,6 +68,18 @@ services:
       redis:
         condition: service_started
 
+  bulk-ingest-worker:
+    build:
+      context: ./services/scrapers
+    command: ["node", "dist/bulk/worker.js"]
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-unnamedfiles}:${POSTGRES_PASSWORD:-change-me-locally}@postgres:5432/${POSTGRES_DB:-unnamedfiles}
+      BULK_SOURCES: connecticut_state_licenses,hhs_oig_leie
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   web:
     build:
       context: ./apps/web

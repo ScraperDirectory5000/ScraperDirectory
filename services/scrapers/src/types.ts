@@ -10,6 +10,8 @@ export interface NormalizedPerson {
   addresses?: NormalizedAddress[];
   phones?: NormalizedPhone[];
   emails?: NormalizedEmail[];
+  lifeEvents?: NormalizedLifeEvent[];
+  relationshipClaims?: NormalizedRelationshipClaim[];
   /** Maps to the `court_records` table, which is used generically for any
    * case/filing-shaped record (court cases, business filings, etc.) via caseType. */
   records?: NormalizedCourtRecord[];
@@ -31,6 +33,29 @@ export interface NormalizedPhone {
 
 export interface NormalizedEmail {
   email: string;
+}
+
+export interface NormalizedLifeEvent {
+  sourceRecordId: string;
+  eventType: "obituary" | "death" | "marriage" | "birth";
+  eventDate?: string;
+  state?: string;
+  locality?: string;
+  description?: string;
+  sourceUrl: string;
+  confidence: number;
+}
+
+export interface NormalizedRelationshipClaim {
+  sourceRecordId: string;
+  relationType: "spouse" | "parent" | "adult_child" | "sibling";
+  relatedFirstName: string;
+  relatedMiddleName?: string;
+  relatedLastName: string;
+  relatedIsAdult: true;
+  eventDate?: string;
+  sourceUrl: string;
+  confidence: number;
 }
 
 export interface NormalizedCourtRecord {

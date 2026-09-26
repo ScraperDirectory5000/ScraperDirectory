@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.routers import auth, optout, payments, persons, search
+from app.routers import auth, optout, payments, persons, search, sources
 
 settings = get_settings()
 
@@ -21,6 +21,7 @@ app.include_router(search.router)
 app.include_router(persons.router)
 app.include_router(payments.router)
 app.include_router(optout.router)
+app.include_router(sources.router)
 
 
 @app.get("/health")
