@@ -7,16 +7,22 @@ import { SecEdgarConnector } from "./connectors/secEdgar.js";
 import { FecContributionsConnector } from "./connectors/fecContributions.js";
 import { LocNewspapersConnector } from "./connectors/locNewspapers.js";
 import { GdeltNewsConnector } from "./connectors/gdeltNews.js";
+import { IdahoCorrectionsConnector } from "./connectors/idahoCorrections.js";
 import { persistNormalizedPerson } from "./db.js";
-import type { Connector } from "./types.js";
+import type { Connector, PersonQuery } from "./types.js";
 
 const CONNECTORS: Record<string, Connector> = {
   npi_registry: new NpiRegistryConnector(),
   sec_edgar: new SecEdgarConnector(),
   fec_contributions: new FecContributionsConnector(),
   loc_newspapers: new LocNewspapersConnector(),
+  idaho_corrections: new IdahoCorrectionsConnector(),
 };
 if (process.env.ENABLE_GDELT_NEWS === "true") CONNECTORS.gdelt_news = new GdeltNewsConnector();
+
+function connectorsForQuery(query: PersonQuery): string[] {
+  return Object.keys(CONNECTORS).filter((name) => name !== "idaho_corrections" || query.state === "ID");
+}
 
 const worker = new Worker<ScrapeJobData>(
   SCRAPE_QUEUE_NAME,
@@ -117,7 +123,7 @@ const server = createServer(async (request, response) => {
       const jobId = `search-${createHash("sha256").update(key).digest("hex").slice(0, 32)}`;
       await scrapeQueue.add(
         "scrape-person",
-        { query, connectors: Object.keys(CONNECTORS) },
+        { query, connectors: connectorsForQuery(query) },
         { jobId, removeOnComplete: { age: 300 }, removeOnFail: { age: 60 } }
       );
       return sendJson(response, 202, { jobId });

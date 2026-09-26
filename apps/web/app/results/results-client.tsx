@@ -9,6 +9,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   sec_edgar: "SEC filings",
   fec_contributions: "Campaign contributions",
   loc_newspapers: "Historical newspapers",
+  idaho_corrections: "Idaho corrections",
   gdelt_news: "Current news",
 };
 
