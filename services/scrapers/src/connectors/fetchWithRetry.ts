@@ -16,7 +16,9 @@ export async function fetchWithRetry(url: string, init?: RequestInit): Promise<R
   for (let attempt = 0; attempt < 3; attempt += 1) {
     let response: Response | undefined;
     try {
-      response = await fetch(url, init);
+      const timeoutSignal = AbortSignal.timeout(30_000);
+      const signal = init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal;
+      response = await fetch(url, { ...init, signal });
       if (response.ok || !RETRYABLE_STATUSES.has(response.status)) return response;
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
