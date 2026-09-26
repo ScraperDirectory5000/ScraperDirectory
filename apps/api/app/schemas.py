@@ -89,11 +89,19 @@ class SearchRequest(BaseModel):
     city: str | None = None
 
 
+class ProviderProgress(BaseModel):
+    status: str = "waiting"
+    records: int = 0
+
+
 class SearchResponse(BaseModel):
     total: int
     results: list[PersonSummary]
     status: str = "complete"
     provider_failures: list[str] = Field(default_factory=list)
+    provider_progress: dict[str, ProviderProgress] = Field(default_factory=dict)
+    job_id: str | None = None
+    location_filter_relaxed: bool = False
 
 
 class UserCreate(BaseModel):

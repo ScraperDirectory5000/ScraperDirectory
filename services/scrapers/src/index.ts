@@ -15,24 +15,48 @@ const CONNECTORS: Record<string, Connector> = {
   sec_edgar: new SecEdgarConnector(),
   fec_contributions: new FecContributionsConnector(),
   loc_newspapers: new LocNewspapersConnector(),
-  gdelt_news: new GdeltNewsConnector(),
 };
+if (process.env.ENABLE_GDELT_NEWS === "true") CONNECTORS.gdelt_news = new GdeltNewsConnector();
 
 const worker = new Worker<ScrapeJobData>(
   SCRAPE_QUEUE_NAME,
   async (job) => {
     const { query, connectors } = job.data;
     const targets = connectors.length > 0 ? connectors : Object.keys(CONNECTORS);
+    const providers: Record<string, { status: string; records: number }> = Object.fromEntries(
+      targets.map((name) => [name, { status: "waiting", records: 0 }])
+    );
+    let progressWrite = Promise.resolve();
+    const publishProgress = () => {
+      const snapshot = { providers: structuredClone(providers) };
+      progressWrite = progressWrite.then(() => job.updateProgress(snapshot));
+      return progressWrite;
+    };
+    await publishProgress();
+
     const outcomes = await Promise.allSettled(targets.map(async (name) => {
       const connector = CONNECTORS[name];
       if (!connector) {
         throw new Error(`Unknown connector "${name}"`);
       }
-      const results = await connector.search(query);
-      for (const person of results) {
-        await persistNormalizedPerson(person);
+      providers[name].status = "searching";
+      await publishProgress();
+      try {
+        const results = await connector.search(query);
+        for (const person of results) {
+          await persistNormalizedPerson(person);
+        }
+        providers[name] = {
+          status: "complete",
+          records: results.reduce((count, person) => count + (person.records?.length ?? 0), 0),
+        };
+        await publishProgress();
+        console.log(`[${name}] persisted ${results.length} record(s) for ${query.firstName} ${query.lastName}`);
+      } catch (error) {
+        providers[name].status = "failed";
+        await publishProgress();
+        throw error;
       }
-      console.log(`[${name}] persisted ${results.length} record(s) for ${query.firstName} ${query.lastName}`);
     }));
 
     outcomes.forEach((outcome, index) => {
@@ -108,6 +132,7 @@ const server = createServer(async (request, response) => {
         state: await job.getState(),
         failedReason: job.failedReason || null,
         failures: job.returnvalue?.failures ?? [],
+        progress: typeof job.progress === "object" ? job.progress : { providers: {} },
       });
     }
 

@@ -15,9 +15,34 @@ export interface SearchResponse {
   results: PersonSummary[];
   status: "complete" | "partial" | "processing";
   provider_failures: string[];
+  provider_progress: Record<string, { status: "waiting" | "searching" | "complete" | "failed"; records: number }>;
+  job_id?: string | null;
+  location_filter_relaxed: boolean;
 }
 
 export async function searchPeople(params: {
+  firstName: string;
+  lastName: string;
+  state?: string;
+  city?: string;
+  wait?: boolean;
+}): Promise<SearchResponse> {
+  const query = new URLSearchParams({
+    first_name: params.firstName,
+    last_name: params.lastName,
+  });
+  if (params.state) query.set("state", params.state);
+  if (params.city) query.set("city", params.city);
+  if (params.wait === false) query.set("wait", "false");
+
+  const response = await fetch(`${API_BASE_URL}/search?${query.toString()}`, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function getSearchStatus(jobId: string, params: {
   firstName: string;
   lastName: string;
   state?: string;
@@ -30,10 +55,10 @@ export async function searchPeople(params: {
   if (params.state) query.set("state", params.state);
   if (params.city) query.set("city", params.city);
 
-  const response = await fetch(`${API_BASE_URL}/search?${query.toString()}`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Search failed: ${response.status}`);
-  }
+  const response = await fetch(`${API_BASE_URL}/search/status/${encodeURIComponent(jobId)}?${query.toString()}`, {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error(`Search status failed: ${response.status}`);
   return response.json();
 }
 

@@ -3,7 +3,7 @@ import { fetchWithRetry } from "./fetchWithRetry.js";
 import { classifyNewsMention, newsIdentity, STATE_NAMES } from "./newsRecords.js";
 
 const BASE_URL = "https://www.loc.gov/newspapers/";
-const PAGE_SIZE = 300;
+const PAGE_SIZE = 50;
 const MAX_PAGES = 1;
 
 interface LocNewspaperPage {
@@ -23,6 +23,7 @@ export class LocNewspapersConnector implements Connector {
 
   async search(query: PersonQuery): Promise<NormalizedPerson[]> {
     const records = new Map<string, NormalizedCourtRecord>();
+    let successfulRequests = 0;
     const stateName = query.state ? STATE_NAMES[query.state] : undefined;
     const scopes = stateName ? [stateName, undefined] : [undefined];
 
@@ -37,12 +38,23 @@ export class LocNewspapersConnector implements Connector {
         });
         if (scope) params.set("fa", `location_state:${scope}`);
 
-        const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`, {
-          headers: { "User-Agent": "UnnamedFiles/1.0 (contact@unnamedfiles.com)" },
-        });
-        if (!response.ok) throw new Error(`Library of Congress request failed: ${response.status}`);
-        const body = (await response.json()) as LocNewspaperPage;
-        const results = body.results ?? [];
+        let results: NonNullable<LocNewspaperPage["results"]>;
+        try {
+          const response = await fetchWithRetry(`${BASE_URL}?${params.toString()}`, {
+            headers: {
+              Accept: "application/json",
+              "Accept-Encoding": "identity",
+              "User-Agent": "UnnamedFiles/1.0 (contact@unnamedfiles.com)",
+            },
+          });
+          if (!response.ok) throw new Error(`Library of Congress request failed: ${response.status}`);
+          const body = (await response.json()) as LocNewspaperPage;
+          results = body.results ?? [];
+          successfulRequests += 1;
+        } catch (error) {
+          console.error(`[${this.sourceName}] request failed for ${scope ?? "nationwide"}:`, error);
+          break;
+        }
 
         for (const result of results) {
           const recordUrl = result.url ?? result.id;
@@ -65,6 +77,7 @@ export class LocNewspapersConnector implements Connector {
       }
     }
 
+    if (successfulRequests === 0) throw new Error("All Library of Congress requests failed");
     if (records.size === 0) return [];
     return [{
       externalId: newsIdentity(query),
